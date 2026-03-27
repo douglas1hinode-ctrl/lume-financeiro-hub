@@ -5,12 +5,12 @@ app.use(express.json());
 
 const API_URL = "https://api.painel.best";
 const API_KEY = process.env.THEBEST_API_KEY || "";
+const REST_KEY = process.env.THEBEST_REST_KEY || API_KEY;
 
 const fetchBest = async (endpoint) => {
   const res = await fetch(`${API_URL}${endpoint}`, {
     headers: {
-      "Authorization": `Bearer ${API_KEY}`,
-      "Api-Key": API_KEY,
+      "Api-Key": REST_KEY,
       "Content-Type": "application/json"
     }
   });
@@ -18,35 +18,25 @@ const fetchBest = async (endpoint) => {
   return res.json();
 };
 
-const fetchOldApi = async (act) => {
-  const res = await fetch("https://painel.best/api.php", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ key: API_KEY, action: act })
-  });
-  const text = await res.text();
-  try { return JSON.parse(text); } catch { return {}; }
-};
-
 app.post('/api/thebest', async (req, res) => {
   const { action, ...params } = req.body || {};
   console.log(`[API] action=${action || 'undefined'}`, JSON.stringify(params));
 
   try {
-    // ── info: usa PHP API (confiável com conta master) ─────────────────────────
+    // ── info: usa REST API ──────────────────────────────────────────────────────
     if (action === 'info') {
-      const [balanceRes, salesInfo, trialsInfo] = await Promise.all([
-        fetchOldApi('balance'),
+      const [userRes, salesInfo, trialsInfo] = await Promise.all([
+        fetchBest('/user/').catch(() => ({})),
         fetchBest('/lines/?page=1&page_size=100&is_trial=false').catch(() => ({ last_page: 0, count: 0 })),
         fetchBest('/lines/?page=1&page_size=100&is_trial=true').catch(() => ({ last_page: 0, count: 0 })),
       ]);
-      const credits  = balanceRes?.credits  ?? balanceRes?.balance ?? 0;
-      const username = balanceRes?.username ?? null;
+      const credits  = userRes?.credits  ?? 0;
+      const username = userRes?.username ?? null;
       const totalSalesPages  = salesInfo.last_page  || 0;
       const totalTrialsPages = trialsInfo.last_page || 0;
       console.log(`[API] info → username=${username} credits=${credits} salesPages=${totalSalesPages} trialsPages=${totalTrialsPages}`);
       return res.json({
-        master: { id: null, username, credits, active_lines_count: salesInfo.count || 0, trial_lines_count: trialsInfo.count || 0, expired_lines_count: 0, lines_count: (salesInfo.count || 0) + (trialsInfo.count || 0) },
+        master: { id: userRes?.id || null, username, credits, active_lines_count: userRes?.active_lines_count || 0, trial_lines_count: userRes?.trial_lines_count || 0, expired_lines_count: userRes?.expired_lines_count || 0, lines_count: userRes?.lines_count || 0 },
         resellers: [],
         total_trials_all_time: trialsInfo.count || 0, total_trials_pages: totalTrialsPages,
         total_sales_all_time:  salesInfo.count  || 0, total_sales_pages:  totalSalesPages,
