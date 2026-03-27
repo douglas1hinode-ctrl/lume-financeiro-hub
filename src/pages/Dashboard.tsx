@@ -55,8 +55,8 @@ export default function Dashboard() {
       setMasterInfo(info.master);
       setResellersInfo(info.resellers || []);
 
-      const totalSalesPages  = info.total_sales_pages  || 69;
-      const totalTrialsPages = info.total_trials_pages || 263;
+      const totalSalesPages  = info.total_sales_pages  || 0;
+      const totalTrialsPages = info.total_trials_pages || 0;
       const totalPages = totalSalesPages + totalTrialsPages;
       const CONCURRENCY = 5; // 5 workers simultâneos do browser, cada um busca 1 página
 
@@ -225,7 +225,7 @@ export default function Dashboard() {
 
   // Compute metrics using shared utility — SEM todayStats na dep (evita re-render durante fetch)
   const data = useMemo(() => {
-    if (!masterInfo || salesLines.length === 0) return null;
+    if (!masterInfo) return null;
     const metrics = computeMetrics(salesLines, trialLines, masterInfo, resellersInfo, viewFilter, startDate, endDate, planDays);
     return {
       ...metrics,
