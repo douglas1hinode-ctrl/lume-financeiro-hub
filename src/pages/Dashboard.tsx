@@ -15,17 +15,7 @@ import {
 interface TrafficExpense { date: string; amount: number; user_id?: string; }
 interface UserReseller { id: string; name: string; type: string; }
 
-const API_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/thebest_api`;
-const API_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
-
-async function apiCall(body: any) {
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  return res.json();
-}
+import { apiCall } from "@/lib/api";
 
 export default function Dashboard() {
   const [masterInfo, setMasterInfo] = useState<MasterInfo | null>(null);
@@ -109,8 +99,9 @@ export default function Dashboard() {
       });
 
     } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
       console.error('Erro ao carregar dados:', e);
-      setSyncProgress({ current: 0, total: 0, status: 'Erro ao carregar dados.' });
+      setSyncProgress({ current: 0, total: 0, status: `Erro: ${msg}` });
     } finally {
       loadBusy.current = false;
     }

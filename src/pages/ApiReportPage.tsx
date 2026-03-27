@@ -1,16 +1,5 @@
 import { useState } from "react";
-
-const API_URL = "https://gfumzidvctckachfxdrt.supabase.co/functions/v1/thebest_api";
-const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmdW16aWR2Y3Rja2FjaGZ4ZHJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0OTExMjcsImV4cCI6MjA5MDA2NzEyN30.gQ9yFQPVeD1yVJB33XbKDX05dREa3bsi66clOiSrntE";
-
-async function apiCall(body: object) {
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  return res.json();
-}
+import { apiCall } from "@/lib/api";
 
 interface ReportRow {
   owner: string;
