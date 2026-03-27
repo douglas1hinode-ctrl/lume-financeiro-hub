@@ -9,4 +9,22 @@ services:
         VITE_SUPABASE_PROJECT_ID: ${VITE_SUPABASE_PROJECT_ID}
     ports:
       - "80:80"
+    depends_on:
+      - api
+    networks:
+      - app_net
     restart: unless-stopped
+
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    environment:
+      - THEBEST_API_KEY=${THEBEST_API_KEY}
+    networks:
+      - app_net
+    restart: unless-stopped
+
+networks:
+  app_net:
+    driver: bridge
