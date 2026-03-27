@@ -24,43 +24,54 @@ serve(async (req: Request) => {
       return await res.json()
     }
 
-    // API antiga (PHP) — funciona com conta reseller simples
-    const fetchOldApi = async (act: string) => {
-      const response = await fetch("https://painel.best/api.php", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ key: API_KEY, action: act })
-      });
-      const text = await response.text();
-      try { return JSON.parse(text); } catch { return {}; }
-    };
-
     const reqData = await req.json().catch(() => ({}));
     const action = reqData.action || 'report';
 
     // =============================================
-    // ACTION: info — usa API antiga (PHP) compatível com conta reseller
+    // ACTION: info — Metadados do master e resellers via REST API
     // =============================================
     if (action === 'info') {
-      const balanceRes = await fetchOldApi('balance');
-      const credits = balanceRes?.credits ?? balanceRes?.balance ?? 0;
-      const username = balanceRes?.username ?? null;
+      const [userRes, trialsPage, salesPage] = await Promise.all([
+        fetchBest('/user/'),
+        fetchBest('/lines/?page=1&page_size=1&is_trial=true'),
+        fetchBest('/lines/?page=1&page_size=1&is_trial=false'),
+      ]);
+
+      // Revendedores — opcional (pode ser vazio se não tiver sub-revendedores)
+      const resellersRes = await fetchBest('/resellers/?page_size=100').catch(() => ({ results: [] }));
+      const resellers = resellersRes.results || [];
+
+      let enrichedResellers: any[] = [];
+      if (resellers.length > 0) {
+        const details = await Promise.all(resellers.map((r: any) => fetchBest(`/resellers/${r.id}`).catch(() => null)));
+        enrichedResellers = resellers.map((r: any) => {
+          const d = details.find((det: any) => det && det.id === r.id);
+          return {
+            id: r.id,
+            user_id: d?.user_id || r.user_id || r.user || null,
+            username: r.username,
+            credits: r.credits,
+            active_lines_count: d?.active_lines_count || 0,
+            trial_lines_count: d?.trial_lines_count || 0,
+          };
+        });
+      }
 
       return new Response(JSON.stringify({
         master: {
-          id: null,
-          username,
-          credits,
-          active_lines_count: 0,
-          trial_lines_count: 0,
-          expired_lines_count: 0,
-          lines_count: 0,
+          id: userRes.id,
+          username: userRes.username,
+          credits: userRes.credits,
+          active_lines_count: userRes.active_lines_count,
+          trial_lines_count: userRes.trial_lines_count,
+          expired_lines_count: userRes.expired_lines_count,
+          lines_count: userRes.lines_count,
         },
-        resellers: [],
-        total_trials_all_time: 0,
-        total_trials_pages: 0,
-        total_sales_all_time: 0,
-        total_sales_pages: 0,
+        resellers: enrichedResellers,
+        total_trials_all_time: trialsPage.count || 0,
+        total_trials_pages: trialsPage.last_page || 0,
+        total_sales_all_time: salesPage.count || 0,
+        total_sales_pages: salesPage.last_page || 0,
       }), { headers });
     }
 
@@ -149,7 +160,7 @@ serve(async (req: Request) => {
     }
 
     // =============================================
-    // ACTION: fetch_conversion_logs — Uma página de logs trial-conversion
+    // ACTION: fetch_conversion_logs
     // =============================================
     if (action === 'fetch_conversion_logs') {
       const page = reqData.page || 1;
@@ -162,7 +173,7 @@ serve(async (req: Request) => {
     }
 
     // =============================================
-    // ACTION: fetch_extend_logs — Uma página de logs de renovação (extend)
+    // ACTION: fetch_extend_logs
     // =============================================
     if (action === 'fetch_extend_logs') {
       const page = reqData.page || 1;
