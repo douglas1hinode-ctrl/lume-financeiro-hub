@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts"
 
 const API_URL = "https://api.painel.best"
-const API_KEY = "vkutkHDffmDmroO3_IM7WZEW8tEytCxlRqrG-vze2Xs"
+const API_KEY = Deno.env.get("THEBEST_API_KEY") ?? ""
 
 serve(async (req: Request) => {
   const headers = {

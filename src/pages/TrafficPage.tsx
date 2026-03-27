@@ -20,12 +20,7 @@ interface UserReseller { id: string; name: string; type: string; }
 
 const KEYS = [['traffic_expenses']];
 
-const API_URL = "https://gfumzidvctckachfxdrt.supabase.co/functions/v1/thebest_api";
-const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmdW16aWR2Y3Rja2FjaGZ4ZHJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0OTExMjcsImV4cCI6MjA5MDA2NzEyN30.gQ9yFQPVeD1yVJB33XbKDX05dREa3bsi66clOiSrntE";
-async function apiCall(body: object) {
-  const r = await fetch(API_URL, { method: "POST", headers: { Authorization: `Bearer ${API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify(body) });
-  return r.json();
-}
+import { apiCall } from "@/lib/api";
 
 export default function TrafficPage() {
   const { data: expenses, isLoading } = useSupabaseQuery<TrafficExpense>(['traffic_expenses'], 'traffic_expenses');

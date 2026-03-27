@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const API_KEY = 'vkutkHDffmDmroO3_IM7WZEW8tEytCxlRqrG-vze2Xs'
+    const API_KEY = Deno.env.get("THEBEST_API_KEY") ?? ""
     
     // Configura chamadas HTTP nativas com fetch
     const fetchApi = async (action: string, extraBody: Record<string, string> = {}) => {
