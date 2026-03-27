@@ -35,15 +35,21 @@ app.post('/api/thebest', async (req, res) => {
   try {
     // ── info: usa PHP API (confiável com conta master) ─────────────────────────
     if (action === 'info') {
-      const balanceRes = await fetchOldApi('balance');
+      const [balanceRes, salesInfo, trialsInfo] = await Promise.all([
+        fetchOldApi('balance'),
+        fetchBest('/lines/?page=1&page_size=100&is_trial=false').catch(() => ({ last_page: 0, count: 0 })),
+        fetchBest('/lines/?page=1&page_size=100&is_trial=true').catch(() => ({ last_page: 0, count: 0 })),
+      ]);
       const credits  = balanceRes?.credits  ?? balanceRes?.balance ?? 0;
       const username = balanceRes?.username ?? null;
-      console.log(`[API] info → username=${username} credits=${credits}`);
+      const totalSalesPages  = salesInfo.last_page  || 0;
+      const totalTrialsPages = trialsInfo.last_page || 0;
+      console.log(`[API] info → username=${username} credits=${credits} salesPages=${totalSalesPages} trialsPages=${totalTrialsPages}`);
       return res.json({
-        master: { id: null, username, credits, active_lines_count: 0, trial_lines_count: 0, expired_lines_count: 0, lines_count: 0 },
+        master: { id: null, username, credits, active_lines_count: salesInfo.count || 0, trial_lines_count: trialsInfo.count || 0, expired_lines_count: 0, lines_count: (salesInfo.count || 0) + (trialsInfo.count || 0) },
         resellers: [],
-        total_trials_all_time: 0, total_trials_pages: 0,
-        total_sales_all_time: 0,  total_sales_pages: 0,
+        total_trials_all_time: trialsInfo.count || 0, total_trials_pages: totalTrialsPages,
+        total_sales_all_time:  salesInfo.count  || 0, total_sales_pages:  totalSalesPages,
       });
     }
 
